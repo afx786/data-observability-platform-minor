@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from app.api.routes import (
     alerts,
+    auth,
     baselines,
     incidents,
     ingestion,
@@ -15,6 +16,9 @@ from app.api.routes import (
 )
 
 api_router = APIRouter()
+
+# Auth endpoints are public (login/token); user management checks roles itself.
+api_router.include_router(auth.router)
 
 api_router.include_router(sources.router)
 api_router.include_router(ingestion.router)

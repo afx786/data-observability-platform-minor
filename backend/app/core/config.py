@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     app_name: str = "Data Observability Platform"
     api_prefix: str = "/api"
 
+    # Authentication (JWT sent in the Authorization header)
+    secret_key: str = "dev-only-secret-key-replace-before-deployment"
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60
+
     # Platform database
     database_url: str = (
         "postgresql+psycopg://postgres:postgres@localhost:5432/data_observability"

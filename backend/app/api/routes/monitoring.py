@@ -1,5 +1,11 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
-router = APIRouter(prefix="/monitoring", tags=["monitoring"])
+from app.api.deps import get_current_user
+
+router = APIRouter(
+    prefix="/monitoring",
+    tags=["monitoring"],
+    dependencies=[Depends(get_current_user)],
+)
 
 # Monitoring, drift and batch-history endpoints are not implemented yet.
