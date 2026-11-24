@@ -18,7 +18,8 @@ import {
   textareaClass,
 } from "../components/styles.js";
 import { AsyncContent, EmptyState } from "../components/StateViews.jsx";
-import { SourceType, WINDOW_HOURS_MAX, WINDOW_HOURS_MIN } from "../constants/enums.js";
+import { Role, SourceType, WINDOW_HOURS_MAX, WINDOW_HOURS_MIN } from "../constants/enums.js";
+import { useAuth } from "../context/AuthContext.jsx";
 import { useResource } from "../hooks/useResource.js";
 import { formatDateTime, formatNumber } from "../utils/format.js";
 
@@ -108,6 +109,8 @@ function buildConfig(form) {
 }
 
 export default function Sources() {
+  const { hasRole } = useAuth();
+  const canMutate = hasRole(Role.ANALYST);
   const [selectedId, setSelectedId] = useState(null);
   const [sourceForm, setSourceForm] = useState(emptySource);
   const [uploadForm, setUploadForm] = useState(emptyUpload);
@@ -273,21 +276,25 @@ export default function Sources() {
                 key: "actions",
                 header: "Actions",
                 render: (row) =>
-                  [SourceType.POSTGRESQL, SourceType.REST_API].includes(row.source_type) ? (
-                    <button
-                      type="button"
-                      disabled={pollingId === row.id}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handlePoll(row);
-                      }}
-                      className={`${secondaryButtonClass} px-2 py-1 text-xs`}
-                    >
-                      {pollingId === row.id ? "Polling…" : "Poll now"}
-                    </button>
-                  ) : (
-                    <span className="text-xs text-slate-400">Upload to refresh</span>
-                  ),
+                  [SourceType.POSTGRESQL, SourceType.REST_API].includes(row.source_type)
+                    ? canMutate ? (
+                        <button
+                          type="button"
+                          disabled={pollingId === row.id}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handlePoll(row);
+                          }}
+                          className={`${secondaryButtonClass} px-2 py-1 text-xs`}
+                        >
+                          {pollingId === row.id ? "Polling…" : "Poll now"}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-slate-400">Read-only</span>
+                      )
+                    : (
+                      <span className="text-xs text-slate-400">Upload to refresh</span>
+                    ),
               },
             ]}
             rows={sourceList}
@@ -369,6 +376,7 @@ export default function Sources() {
         </SectionCard>
       )}
 
+      {canMutate && (
       <div className="grid gap-6 xl:grid-cols-2">
         <SectionCard title="Add a source" description="All four source types are supported">
           <form onSubmit={handleCreate} className="space-y-4">
@@ -647,6 +655,7 @@ export default function Sources() {
           </form>
         </SectionCard>
       </div>
+      )}
     </section>
   );
 }

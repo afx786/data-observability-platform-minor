@@ -1,0 +1,218 @@
+{
+  "info": {
+    "name": "Data Observability Platform",
+    "description": "End-to-end API collection. Run Auth / Login first; the token is stored automatically.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "token", "value": "" },
+    { "key": "email", "value": "admin@example.com" },
+    { "key": "password", "value": "adminpass123" },
+    { "key": "sourceId", "value": "1" },
+    { "key": "incidentId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.set('token', pm.response.json().access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "auth": { "type": "noauth" },
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{email}}\",\"password\":\"{{password}}\"}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Me",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/auth/me" }
+        }
+      ]
+    },
+    {
+      "name": "Sources",
+      "item": [
+        {
+          "name": "List",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/sources" }
+        },
+        {
+          "name": "Create CSV source",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"postman-csv\",\"config\":{\"source_type\":\"csv\",\"window_hours\":1}}"
+            },
+            "url": "{{baseUrl}}/api/sources"
+          }
+        },
+        {
+          "name": "Poll source",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/sources/{{sourceId}}/poll" }
+        }
+      ]
+    },
+    {
+      "name": "Ingestion",
+      "item": [
+        {
+          "name": "Upload CSV",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "customers.csv" },
+                { "key": "name", "value": "customers" },
+                { "key": "window_hours", "value": "1" },
+                { "key": "source_id", "value": "{{sourceId}}", "disabled": true }
+              ]
+            },
+            "url": "{{baseUrl}}/api/ingestion/upload"
+          }
+        },
+        {
+          "name": "Batches",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/ingestion/batches?source_id={{sourceId}}" }
+        },
+        {
+          "name": "Profiles",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/profiles?source_id={{sourceId}}" }
+        }
+      ]
+    },
+    {
+      "name": "Monitoring",
+      "item": [
+        {
+          "name": "Summary",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/monitoring/summary?source_id={{sourceId}}&window_hours=6" }
+        },
+        {
+          "name": "Anomaly rate",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/monitoring/anomaly-rate?window_hours=6" }
+        }
+      ]
+    },
+    {
+      "name": "Incidents",
+      "item": [
+        {
+          "name": "List",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/incidents?source_id={{sourceId}}" }
+        },
+        {
+          "name": "Detail",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/incidents/{{incidentId}}" }
+        },
+        {
+          "name": "Acknowledge",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/incidents/{{incidentId}}?status=acknowledged"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Baselines and rules",
+      "item": [
+        {
+          "name": "List baselines",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/baselines" }
+        },
+        {
+          "name": "Approve baseline",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/baselines?source_id={{sourceId}}"
+          }
+        },
+        {
+          "name": "List rules",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/rules?source_id={{sourceId}}" }
+        },
+        {
+          "name": "Create null-rate rule",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"data_source_id\":{{sourceId}},\"rule_type\":\"null_rate\",\"column_name\":\"email\",\"params\":{\"max_null_rate\":0.05},\"severity\":\"high\"}"
+            },
+            "url": "{{baseUrl}}/api/rules"
+          }
+        },
+        {
+          "name": "Schemas",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/rules/schemas?source_id={{sourceId}}" }
+        }
+      ]
+    },
+    {
+      "name": "Alerts",
+      "item": [
+        {
+          "name": "History",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/alerts" }
+        },
+        {
+          "name": "Save policy",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"recipients\":[\"ops@example.com\"],\"severity_filter\":[\"high\",\"critical\"],\"cooldown_minutes\":60,\"enabled\":true}"
+            },
+            "url": "{{baseUrl}}/api/alerts/policies/{{sourceId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Quality",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/reports/quality?window_hours=24" }
+        },
+        {
+          "name": "System status",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/reports/system-status" }
+        },
+        {
+          "name": "Health",
+          "auth": { "type": "noauth" },
+          "request": { "method": "GET", "url": "{{baseUrl}}/health" }
+        }
+      ]
+    }
+  ]
+}
