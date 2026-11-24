@@ -1,11 +1,15 @@
 """Turn detector findings into explainable, deduplicated incidents."""
 
+from datetime import datetime, timezone
+
 from sqlalchemy.orm import Session
 
 from app.models.incident import Incident
 from app.schemas.common import Finding
 from app.schemas.enums import DetectorType, Severity
 
+# Fixed starting severity for each detector type. Threshold breaches from rules
+# carry their configured severity and are handled by the calling detector.
 BASE_SEVERITY: dict[DetectorType, Severity] = {
     DetectorType.RULE: Severity.MEDIUM,
     DetectorType.SCHEMA: Severity.HIGH,
@@ -25,11 +29,14 @@ RANK = {
     Severity.HIGH: 2,
     Severity.CRITICAL: 3,
 }
+LEVELS = [Severity.LOW, Severity.MEDIUM, Severity.HIGH, Severity.CRITICAL]
 
 ACTIONS = {
     DetectorType.SCHEMA: "Inspect the upstream producer for a schema change.",
     DetectorType.RULE: "Inspect upstream ingestion and correct the affected values.",
     DetectorType.FRESHNESS: "Check the source connection and the last successful load.",
+    DetectorType.BASELINE: "Review the approved reference period before accepting this change.",
+    DetectorType.VOLUME: "Check whether the source stopped early or produced a partial batch.",
     DetectorType.ISOLATION_FOREST: "Compare flagged rows with the reference period.",
 }
 
@@ -40,14 +47,18 @@ def decide_severity(findings: list[Finding], occurrences: int = 1) -> Severity:
         return Severity.LOW
 
     severity = max(
-        (BASE_SEVERITY.get(f.detector, Severity.MEDIUM) for f in findings),
+        (
+            finding.severity
+            if finding.detector == DetectorType.RULE
+            else BASE_SEVERITY.get(finding.detector, Severity.MEDIUM)
+            for finding in findings
+        ),
         key=lambda level: RANK[level],
     )
 
     large = any(f.magnitude is not None and f.magnitude >= 5 for f in findings)
     if large or occurrences >= 3:
-        index = min(RANK[severity] + 1, RANK[Severity.CRITICAL])
-        severity = [level for level, rank in RANK.items() if rank == index][0]
+        severity = LEVELS[min(RANK[severity] + 1, RANK[Severity.CRITICAL])]
 
     return severity
 
@@ -58,8 +69,8 @@ def persist_findings(
     ingestion_batch_id: int,
     findings: list[Finding],
 ) -> list[Incident]:
-    severity = decide_severity(findings)
     saved: list[Incident] = []
+    now = datetime.now(timezone.utc)
 
     for finding in findings:
         detector = finding.detector.value
@@ -74,11 +85,17 @@ def persist_findings(
             .first()
         )
 
+        occurrences = (existing.occurrences + 1) if existing else 1
+        severity = decide_severity([finding], occurrences=occurrences)
+        evidence = {**finding.evidence, "occurrences": occurrences}
+
         if existing:
-            existing.occurrences += 1
-            if RANK[Severity(severity)] > RANK[Severity(existing.severity)]:
+            existing.occurrences = occurrences
+            existing.last_seen_at = now
+            if RANK[severity] > RANK[Severity(existing.severity)]:
                 existing.severity = severity.value
-            existing.evidence = finding.evidence
+            existing.ingestion_batch_id = ingestion_batch_id
+            existing.evidence = evidence
             existing.observed = {"value": finding.observed}
             existing.expected = {"value": finding.expected}
             existing.explanation = finding.message
@@ -92,9 +109,10 @@ def persist_findings(
                 severity=severity.value,
                 status="open",
                 occurrences=1,
+                last_seen_at=now,
                 observed={"value": finding.observed},
                 expected={"value": finding.expected},
-                evidence=finding.evidence,
+                evidence=evidence,
                 explanation=finding.message,
                 recommended_action=ACTIONS.get(
                     finding.detector, "Review the evidence and compare with the reference period."
@@ -105,4 +123,6 @@ def persist_findings(
         saved.append(incident)
 
     db.commit()
+    for incident in saved:
+        db.refresh(incident)
     return saved

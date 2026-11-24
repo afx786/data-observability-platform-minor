@@ -16,6 +16,7 @@ from app.models.schema import Schema
 from app.processing.profiler import profile_dataframe
 from app.processing.schema_registry import compare_schema, infer_schema
 from app.schemas.common import Finding
+from app.services.baselines import active_baseline, compare_baseline
 
 
 def _configured_rules(db: Session, source_id: int) -> list[dict[str, Any]]:
@@ -86,7 +87,16 @@ def monitor_frame(
         findings.extend(compare_schema(expected_schema.definition, observed_schema))
 
     findings.extend(evaluate_rules(profile, _configured_rules(db, source.id)))
+
+    baseline = active_baseline(db, source.id)
+    if baseline:
+        findings.extend(compare_baseline(profile, baseline))
+
     incidents = persist_findings(db, source.id, batch.id, findings)
+
+    from app.services.alerts import evaluate_alerts
+
+    evaluate_alerts(db, incidents)
 
     batch.status = "analyzed"
     batch.flagged_rows = 0

@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -24,6 +23,7 @@ async def upload_file(
     name: str = Form(...),
     window_hours: int = Form(1),
     timestamp_column: str | None = Form(None),
+    source_id: int | None = Form(None),
     db: Session = Depends(get_db),
 ) -> list[dict[str, Any]]:
     if not 1 <= window_hours <= 24:
@@ -55,13 +55,24 @@ async def upload_file(
         if sheet:
             config["sheet_name"] = sheet
 
-        source = DataSource(
-            name=dataset_name,
-            source_type=source_type,
-            config=config,
-            status="active",
+        source = (
+            db.query(DataSource).filter(DataSource.id == source_id).first()
+            if source_id is not None
+            else None
         )
-        db.add(source)
+        if source is None:
+            source = DataSource(
+                name=dataset_name,
+                source_type=source_type,
+                config=config,
+                status="active",
+            )
+            db.add(source)
+        else:
+            # Re-uploading to an existing source updates its view settings but keeps
+            # the schema, baseline and incident history attached to that source.
+            source.config = {**(source.config or {}), **config}
+            source.status = "active"
         db.commit()
         db.refresh(source)
 

@@ -29,6 +29,7 @@ def _incident_dict(incident: Incident) -> dict:
         "explanation": incident.explanation,
         "recommended_action": incident.recommended_action,
         "created_at": incident.created_at.isoformat() if incident.created_at else None,
+        "last_seen_at": incident.last_seen_at.isoformat() if incident.last_seen_at else None,
     }
 
 

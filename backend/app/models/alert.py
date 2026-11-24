@@ -18,7 +18,7 @@ class Alert(Base, TimestampMixin):
     )
 
     channel: Mapped[str] = mapped_column(String(50), default="email", nullable=False)
-    recipient: Mapped[str] = mapped_column(String(255), nullable=False)
+    recipient: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String(50), default="pending", nullable=False)
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     message: Mapped[str | None] = mapped_column(Text, nullable=True)

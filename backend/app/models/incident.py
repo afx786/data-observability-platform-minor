@@ -1,4 +1,6 @@
-from sqlalchemy import JSON, ForeignKey, Integer, String, Text
+from datetime import datetime
+
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -24,6 +26,7 @@ class Incident(Base, TimestampMixin):
     severity: Mapped[str] = mapped_column(String(20), nullable=False)
     status: Mapped[str] = mapped_column(String(50), default="open", nullable=False)
     occurrences: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Expected vs observed values, supporting statistics and the explanation shown to users.
     observed: Mapped[dict | None] = mapped_column(JSON, nullable=True)

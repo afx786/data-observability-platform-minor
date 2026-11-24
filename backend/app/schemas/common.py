@@ -68,3 +68,4 @@ class IncidentDetail(BaseModel):
     explanation: str | None = None
     recommended_action: str | None = None
     created_at: datetime
+    last_seen_at: datetime | None = None

@@ -57,3 +57,43 @@ def test_profiles_are_persisted(
     assert profiles
     assert profiles[0]["metrics"]["row_count"] == 3
     assert "columns" in profiles[0]["metrics"]
+
+
+def test_baseline_comparison_and_alert_record(
+    client: TestClient,
+    admin_headers: dict[str, str],
+) -> None:
+    clean = b"email,amount\n" + b"a@example.com,10\n" * 10
+    first = client.post(
+        "/api/ingestion/upload",
+        files={"file": ("clean.csv", clean, "text/csv")},
+        data={"name": "baseline-source"},
+        headers=admin_headers,
+    ).json()[0]
+    source_id = first["source_id"]
+
+    baseline = client.post(
+        "/api/baselines",
+        params={"source_id": source_id},
+        headers=admin_headers,
+    )
+    assert baseline.status_code in {200, 201}, baseline.text
+    assert baseline.json()["version"] == 1
+
+    degraded = b"email,amount\n" + b"a@example.com,10\n" * 7 + b",99\n" * 3
+    second = client.post(
+        "/api/ingestion/upload",
+        files={"file": ("degraded.csv", degraded, "text/csv")},
+        data={"name": "baseline-source", "source_id": str(source_id)},
+        headers=admin_headers,
+    )
+    assert second.status_code == 200, second.text
+
+    incidents = client.get(
+        "/api/incidents", params={"source_id": source_id}, headers=admin_headers
+    ).json()
+    assert any(incident["detector"] == "baseline" for incident in incidents)
+
+    alerts = client.get("/api/alerts", headers=admin_headers).json()
+    assert alerts
+    assert alerts[0]["status"] in {"sent", "failed", "suppressed"}
