@@ -57,12 +57,18 @@ export function formatNumber(value, digits = 2) {
 
 // Rates arrive from the API as fractions (0.12 = 12%). Accept an already-scaled
 // percentage too so older data still renders sensibly.
+export function ratePercent(value) {
+  if (value == null || value === "") return 0;
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 0;
+  return Math.abs(number) <= 1 ? number * 100 : number;
+}
+
 export function formatRate(value, digits = 1) {
   if (value == null || value === "") return "—";
   const number = Number(value);
   if (!Number.isFinite(number)) return String(value);
-  const percent = Math.abs(number) <= 1 ? number * 100 : number;
-  return `${percent.toFixed(digits)}%`;
+  return `${ratePercent(number).toFixed(digits)}%`;
 }
 
 export function formatValue(value) {

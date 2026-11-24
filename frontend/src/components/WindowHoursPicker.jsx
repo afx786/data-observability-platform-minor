@@ -1,6 +1,6 @@
 import { WINDOW_HOURS_MAX, WINDOW_HOURS_MIN } from "../constants/enums.js";
 
-export default function WindowHoursPicker({ value, onChange }) {
+export default function WindowHoursPicker({ value, onChange, label = "Anomaly view window" }) {
   const hours = Array.from(
     { length: WINDOW_HOURS_MAX - WINDOW_HOURS_MIN + 1 },
     (_, index) => index + WINDOW_HOURS_MIN,
@@ -8,7 +8,7 @@ export default function WindowHoursPicker({ value, onChange }) {
 
   return (
     <label className="text-sm text-slate-600">
-      Anomaly view window
+      {label}
       <select
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
