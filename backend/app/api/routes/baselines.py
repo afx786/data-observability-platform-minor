@@ -56,6 +56,10 @@ def get_active_baseline(source_id: int, db: Session = Depends(get_db)) -> dict |
         return None
     return {
         "id": baseline.id,
+        "source_id": baseline.data_source_id,
         "version": baseline.version,
+        "model_version": baseline.model_version,
+        "reference_window": baseline.reference_window,
         "statistics": baseline.statistics,
+        "status": baseline.status,
     }

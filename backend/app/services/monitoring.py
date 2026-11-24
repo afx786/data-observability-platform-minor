@@ -1,13 +1,15 @@
 """Orchestrates one batch from raw frame to persisted incidents."""
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import pandas as pd
 from sqlalchemy.orm import Session
 
 from app.detection.decision import persist_findings
+from app.detection.isolation_forest import detect_isolation_forest
 from app.detection.rules import DEFAULT_RULES, evaluate_rules
+from app.detection.statistics import detect_statistical_drift
 from app.models.data_source import DataSource
 from app.models.ingestion_batch import IngestionBatch
 from app.models.profile import Profile
@@ -43,6 +45,14 @@ def monitor_frame(
     window_start: datetime | None = None,
     window_end: datetime | None = None,
 ) -> dict[str, Any]:
+    # A viewing window selects the slice being described. It never changes a
+    # baseline, a rule threshold or a fitted model.
+    if window_end is None:
+        window_end = datetime.now(timezone.utc)
+    if window_start is None:
+        hours = int((source.config or {}).get("window_hours") or 1)
+        window_start = window_end - timedelta(hours=hours)
+
     batch = IngestionBatch(
         data_source_id=source.id,
         status="received",
@@ -56,13 +66,12 @@ def monitor_frame(
 
     timestamp_column = (source.config or {}).get("timestamp_column")
     profile = profile_dataframe(frame, timestamp_column=timestamp_column)
-    db.add(
-        Profile(
-            ingestion_batch_id=batch.id,
-            data_source_id=source.id,
-            metrics=profile,
-        )
+    profile_row = Profile(
+        ingestion_batch_id=batch.id,
+        data_source_id=source.id,
+        metrics=profile,
     )
+    db.add(profile_row)
     batch.status = "profiled"
     db.commit()
 
@@ -92,6 +101,29 @@ def monitor_frame(
     if baseline:
         findings.extend(compare_baseline(profile, baseline))
 
+    config = source.config or {}
+    hours = max(1, min(24, int(config.get("window_hours") or 1)))
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    history = (
+        db.query(Profile)
+        .filter(
+            Profile.data_source_id == source.id,
+            Profile.id != profile_row.id,
+            Profile.created_at >= cutoff,
+        )
+        .order_by(Profile.id.asc())
+        .limit(200)
+        .all()
+    )
+
+    findings.extend(detect_statistical_drift(frame, profile, baseline, history, config))
+
+    if_findings, flagged_rows, model_version = detect_isolation_forest(
+        db, source, frame, baseline
+    )
+    findings.extend(if_findings)
+    batch.flagged_rows = flagged_rows
+
     incidents = persist_findings(db, source.id, batch.id, findings)
 
     from app.services.alerts import evaluate_alerts
@@ -99,12 +131,13 @@ def monitor_frame(
     evaluate_alerts(db, incidents)
 
     batch.status = "analyzed"
-    batch.flagged_rows = 0
     db.commit()
+    db.refresh(batch)
 
     return {
         "batch": batch,
         "profile": profile,
         "findings": findings,
         "incidents": incidents,
+        "model_version": model_version,
     }

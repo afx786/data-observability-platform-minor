@@ -16,6 +16,8 @@ WindowHours = Annotated[int, Field(default=1, ge=1, le=24)]
 class WindowedConfig(BaseModel):
     window_hours: WindowHours = 1
     timestamp_column: str | None = None
+    # Polling cadence for pull-based sources. Viewing window never changes this.
+    poll_interval_minutes: int = Field(default=60, ge=1, le=1440)
 
 
 class FileSourceConfig(WindowedConfig):
@@ -28,6 +30,8 @@ class PostgresSourceConfig(WindowedConfig):
     source_type: Literal[SourceType.POSTGRESQL]
     table: str | None = None
     query: str | None = None
+    # Optional per-source DSN. Falls back to MONITORED_DATABASE_URL.
+    database_url: str | None = None
 
     @model_validator(mode="after")
     def require_table_or_query(self) -> "PostgresSourceConfig":

@@ -1,11 +1,10 @@
-"""Render Cron Job entrypoint for scheduled PostgreSQL source monitoring.
+"""Backward-compatible entrypoint for the Render Cron Job.
 
-Run with: python -m jobs.poll_postgres
+The cron now handles both PostgreSQL and REST pull sources. Use either
+``python -m jobs.run_cron`` or ``python -m jobs.poll_postgres``.
 """
 
-
-def main() -> None:
-    print("Scheduled PostgreSQL monitoring is not implemented yet.")
+from jobs.run_cron import main
 
 
 if __name__ == "__main__":

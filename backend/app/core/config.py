@@ -34,5 +34,8 @@ class Settings(BaseSettings):
     smtp_from: str = ""
     smtp_use_tls: bool = True
 
+    # Trained Isolation Forest pipelines, one per source and baseline version.
+    ml_model_dir: str = "models"
+
 
 settings = Settings()

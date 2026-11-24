@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.api.deps import ROLE_RANK  # noqa: F401 - keeps role hierarchy imported
+from app.core.config import settings
 from app.core.security import hash_password
 from app.db.base import Base
 from app.db.session import get_db
@@ -53,6 +54,14 @@ def configure_app():
         db.commit()
     yield
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def isolate_model_artifacts(tmp_path_factory, monkeypatch) -> None:
+    """Keep trained model files out of the working tree during tests."""
+    monkeypatch.setattr(
+        settings, "ml_model_dir", str(tmp_path_factory.mktemp("ml-models"))
+    )
 
 
 @pytest.fixture
