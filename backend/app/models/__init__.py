@@ -5,6 +5,7 @@ Alembic or ``Base.metadata.create_all()`` will use.
 """
 
 from app.models.alert import Alert
+from app.models.alert_policy import AlertPolicy
 from app.models.audit_log import AuditLog
 from app.models.baseline import Baseline
 from app.models.common import TimestampMixin
@@ -18,6 +19,7 @@ from app.models.user import User
 
 __all__ = [
     "Alert",
+    "AlertPolicy",
     "AuditLog",
     "Baseline",
     "DataSource",

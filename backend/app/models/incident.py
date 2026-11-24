@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, ForeignKey, String, Text
+from sqlalchemy import JSON, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -21,11 +21,13 @@ class Incident(Base, TimestampMixin):
     column_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     detection_method: Mapped[str] = mapped_column(String(100), nullable=False)
 
-    # LOW / MEDIUM / HIGH / CRITICAL - scoring rules are not designed yet.
     severity: Mapped[str] = mapped_column(String(20), nullable=False)
     status: Mapped[str] = mapped_column(String(50), default="open", nullable=False)
+    occurrences: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
     # Expected vs observed values, supporting statistics and the explanation shown to users.
+    observed: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    expected: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     evidence: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     explanation: Mapped[str | None] = mapped_column(Text, nullable=True)
     recommended_action: Mapped[str | None] = mapped_column(Text, nullable=True)

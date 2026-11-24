@@ -14,6 +14,7 @@ EXPECTED_TABLES = {
     "baselines",
     "incidents",
     "alerts",
+    "alert_policies",
     "audit_logs",
 }
 
