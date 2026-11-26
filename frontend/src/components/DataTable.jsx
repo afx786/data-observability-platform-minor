@@ -8,29 +8,31 @@ export default function DataTable({
   onRowClick,
   emptyTitle = "No records found",
   emptyDescription,
+  className = "",
 }) {
   const list = Array.isArray(rows) ? rows : [];
 
   if (!list.length) return <EmptyState title={emptyTitle} description={emptyDescription} />;
 
   return (
-    <div className="overflow-x-auto rounded-md border border-slate-200">
-      <table className="w-full min-w-[640px] text-left text-sm">
-        <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+    <div className={`overflow-x-auto rounded-lg border border-[#E2E8F0] bg-white shadow-[0_1px_3px_0_rgba(15,23,42,0.03)] ${className}`}>
+      <table className="stitch-table min-w-[640px] text-sm">
+        <thead>
           <tr>
             {columns.map((column, index) => (
-              <th key={column.key ?? column.header ?? index} className="px-3 py-2 font-medium">
+              <th key={column.key ?? column.header ?? index} scope="col">
                 {column.header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100 bg-white">
+        <tbody>
           {list.map((row, index) => {
             const key = rowKey ? rowKey(row, index) : row?.id ?? index;
             return (
               <tr
                 key={key}
+                style={{ "--stitch-index": Math.min(index, 14) }}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 onKeyDown={
                   onRowClick
@@ -43,12 +45,12 @@ export default function DataTable({
                     : undefined
                 }
                 tabIndex={onRowClick ? 0 : undefined}
-                className={`${onRowClick ? "cursor-pointer hover:bg-slate-50 focus:bg-slate-50 focus:outline-none" : ""}`}
+                className={onRowClick ? "cursor-pointer" : undefined}
               >
                 {columns.map((column, columnIndex) => (
                   <td
                     key={column.key ?? column.header ?? columnIndex}
-                    className={`px-3 py-2 align-top text-slate-700 ${column.className ?? ""}`}
+                    className={column.className ?? ""}
                   >
                     {column.render
                       ? column.render(row, index)

@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useLocation } from "react-router-dom";
 
 import Layout from "./components/Layout.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -16,27 +16,34 @@ import Sources from "./pages/Sources.jsx";
 import Users from "./pages/Users.jsx";
 
 export default function App() {
+  const location = useLocation();
+  // Only remount the shell when moving between auth and app surfaces; the
+  // authenticated page transition is keyed on `pathname` inside Layout's Outlet.
+  const shellKey = location.pathname.startsWith("/login") ? "auth" : "app";
+
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
+    <div key={shellKey} className="stitch-route-fade">
+      <Routes location={location}>
+        <Route path="/login" element={<Login />} />
 
-      <Route element={<ProtectedRoute />}>
-        <Route element={<Layout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="sources" element={<Sources />} />
-          <Route path="profiling" element={<Profiling />} />
-          <Route path="schema-rules" element={<SchemaRules />} />
-          <Route path="monitoring" element={<Monitoring />} />
-          <Route path="incidents" element={<Incidents />} />
-          <Route path="baselines" element={<Baselines />} />
-          <Route path="alert-policies" element={<AlertPolicies />} />
-          <Route path="reports" element={<Reports />} />
+        <Route element={<ProtectedRoute />}>
+          <Route element={<Layout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="sources" element={<Sources />} />
+            <Route path="profiling" element={<Profiling />} />
+            <Route path="schema-rules" element={<SchemaRules />} />
+            <Route path="monitoring" element={<Monitoring />} />
+            <Route path="incidents" element={<Incidents />} />
+            <Route path="baselines" element={<Baselines />} />
+            <Route path="alert-policies" element={<AlertPolicies />} />
+            <Route path="reports" element={<Reports />} />
 
-          <Route element={<ProtectedRoute minimumRole={Role.ADMIN} />}>
-            <Route path="users" element={<Users />} />
+            <Route element={<ProtectedRoute minimumRole={Role.ADMIN} />}>
+              <Route path="users" element={<Users />} />
+            </Route>
           </Route>
         </Route>
-      </Route>
-    </Routes>
+      </Routes>
+    </div>
   );
 }

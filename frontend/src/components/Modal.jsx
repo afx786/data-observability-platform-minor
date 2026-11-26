@@ -20,7 +20,7 @@ export default function Modal({ open, onClose, title, description, children, foo
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4 sm:p-8"
+      className="stitch-modal-overlay fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#0F172A]/45 p-4 backdrop-blur-[6px] sm:p-8"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -29,27 +29,34 @@ export default function Modal({ open, onClose, title, description, children, foo
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`w-full ${SIZES[size] ?? SIZES.lg} rounded-lg bg-white shadow-xl`}
+        className={`stitch-modal w-full ${SIZES[size] ?? SIZES.lg} overflow-hidden rounded-xl border border-[#E2E8F0] bg-white shadow-[0_24px_48px_-16px_rgba(15,23,42,0.28)]`}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
-          <div>
-            <h2 className="text-base font-semibold text-slate-900">{title}</h2>
-            {description && <p className="mt-1 text-xs text-slate-500">{description}</p>}
+        <div className="flex items-start justify-between gap-4 border-b border-[#E2E8F0] bg-[#FBFCFE] px-5 py-4">
+          <div className="min-w-0">
+            <p className="stitch-eyebrow mb-1">Detail inspector</p>
+            <h2 className="font-stitch-headline text-[19px] font-semibold leading-snug text-[#0F172A]">
+              {title}
+            </h2>
+            {description && (
+              <p className="stitch-mono mt-1.5 text-[11px] leading-relaxed text-[#64748B]">
+                {description}
+              </p>
+            )}
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded-md px-2 py-1 text-sm text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+            className="rounded-md p-1.5 text-[#64748B] transition-colors hover:bg-[#F1F5F9] hover:text-[#0F172A]"
           >
-            ✕
+            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
           </button>
         </div>
 
         <div className="max-h-[70vh] overflow-y-auto px-5 py-5">{children}</div>
 
         {footer && (
-          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 px-5 py-4">
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-[#E2E8F0] bg-[#FBFCFE] px-5 py-4">
             {footer}
           </div>
         )}

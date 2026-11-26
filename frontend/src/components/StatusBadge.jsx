@@ -25,25 +25,33 @@ const TONES = {
 };
 
 const CLASSES = {
-  slate: "bg-slate-100 text-slate-700 ring-slate-200",
-  sky: "bg-sky-50 text-sky-700 ring-sky-200",
-  amber: "bg-amber-50 text-amber-700 ring-amber-200",
-  orange: "bg-orange-50 text-orange-700 ring-orange-200",
-  red: "bg-red-50 text-red-700 ring-red-200",
-  emerald: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  slate: { background: "#F1F5F9", color: "#475569", ring: "#CBD5E1" },
+  sky: { background: "#EFF6FF", color: "#2563EB", ring: "rgba(37,99,235,0.22)" },
+  amber: { background: "#FEFCE8", color: "#8C6D23", ring: "rgba(140,109,35,0.28)" },
+  orange: { background: "#FFF7ED", color: "#C2410C", ring: "rgba(194,65,12,0.22)" },
+  red: { background: "#FEF2F2", color: "#DC2626", ring: "rgba(220,38,38,0.22)" },
+  emerald: { background: "#F0FDF4", color: "#16A34A", ring: "rgba(22,163,74,0.22)" },
 };
 
 export default function StatusBadge({ value, tone }) {
-  if (value == null || value === "") return <span className="text-slate-400">—</span>;
+  if (value == null || value === "") {
+    return <span className="stitch-mono text-[#94A3B8]">—</span>;
+  }
+
   const key = String(value).toLowerCase();
   const selected = tone ?? TONES[key] ?? "slate";
+  const style = CLASSES[selected] ?? CLASSES.slate;
 
   return (
     <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize ring-1 ring-inset ${
-        CLASSES[selected] ?? CLASSES.slate
-      }`}
+      className="stitch-badge"
+      style={{
+        backgroundColor: style.background,
+        color: style.color,
+        "--badge-ring": style.ring,
+      }}
     >
+      <span className="stitch-badge-dot" aria-hidden="true" />
       {key.replace(/_/g, " ")}
     </span>
   );

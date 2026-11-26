@@ -24,3 +24,8 @@ Thumbs.db
 # ML artifacts
 *.joblib
 backend/models/
+
+# Local runtime/demo artifacts
+backend/dev.db
+backend/dev.db-*
+frontend/stitch_data_observability_intelligence_platform/
