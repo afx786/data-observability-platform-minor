@@ -1,5 +1,11 @@
 // Base URL is empty in development so requests go through the Vite proxy on /api.
-const baseURL = import.meta.env.VITE_API_BASE_URL ?? "";
+const configuredBaseURL = (import.meta.env.VITE_API_BASE_URL ?? "").trim().replace(/\/+$/, "");
+const baseURL =
+  configuredBaseURL &&
+  !/^https?:\/\//i.test(configuredBaseURL) &&
+  !configuredBaseURL.startsWith("/")
+    ? `https://${configuredBaseURL}`
+    : configuredBaseURL;
 const TOKEN_KEY = "dop_access_token";
 
 export function getToken() {
