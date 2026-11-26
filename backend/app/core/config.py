@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,6 +10,18 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @field_validator("database_url")
+    @classmethod
+    def _use_psycopg3(cls, value: str) -> str:
+        """Accept standard Postgres URLs while using the installed psycopg 3 driver."""
+        if value.startswith("postgres://"):
+            return f"postgresql+psycopg://{value[len('postgres://') :]}"
+        if value.startswith("postgresql://"):
+            return f"postgresql+psycopg://{value[len('postgresql://') :]}"
+        if value.startswith("postgresql+psycopg2://"):
+            return f"postgresql+psycopg://{value[len('postgresql+psycopg2://') :]}"
+        return value
 
     app_name: str = "Data Observability Platform"
     api_prefix: str = "/api"

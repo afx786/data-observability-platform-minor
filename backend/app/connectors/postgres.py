@@ -14,7 +14,12 @@ _IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$")
 
 
 def _normalize_url(url: str) -> str:
-    return url.replace("postgres://", "postgresql://", 1)
+    return re.sub(
+        r"^(postgres|postgresql)(\+psycopg2)?://",
+        "postgresql+psycopg://",
+        url,
+        count=1,
+    )
 
 
 def _quote_identifier(identifier: str) -> str:
