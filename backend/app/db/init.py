@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def _bootstrap_admin(db: Session) -> None:
-    """Create the first admin once when bootstrap credentials are provided."""
+    """Create or reset the bootstrap admin when credentials are provided."""
     email = (os.getenv("BOOTSTRAP_ADMIN_EMAIL") or "").strip().lower()
     password = os.getenv("BOOTSTRAP_ADMIN_PASSWORD") or ""
 
@@ -26,19 +26,26 @@ def _bootstrap_admin(db: Session) -> None:
     if len(password) < 8:
         logger.warning("Bootstrap admin password is shorter than 8 characters; skipping")
         return
-    if db.query(User).filter(User.email == email).first() is not None:
-        return
+    password_hash = hash_password(password)
+    user = db.query(User).filter(User.email == email).first()
 
-    db.add(
-        User(
-            email=email,
-            password_hash=hash_password(password),
-            role=Role.ADMIN.value,
-            is_active=True,
+    if user is None:
+        db.add(
+            User(
+                email=email,
+                password_hash=password_hash,
+                role=Role.ADMIN.value,
+                is_active=True,
+            )
         )
-    )
+        logger.info("Created bootstrap admin user: %s", email)
+    else:
+        user.password_hash = password_hash
+        user.role = Role.ADMIN.value
+        user.is_active = True
+        logger.info("Updated bootstrap admin credentials: %s", email)
+
     db.commit()
-    logger.info("Created bootstrap admin user: %s", email)
 
 
 def init_db() -> None:
